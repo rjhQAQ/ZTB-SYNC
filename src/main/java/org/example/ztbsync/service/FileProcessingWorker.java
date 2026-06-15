@@ -32,6 +32,7 @@ public class FileProcessingWorker {
     private final LlmExtractionClient llmExtractionClient;
     private final ExtractionMerger extractionMerger;
     private final ExtractionPersistenceService persistenceService;
+    private final BidSimilarityAnalysisService bidSimilarityAnalysisService;
 
     public FileProcessingWorker(
             FileProcessingTaskMapper taskMapper,
@@ -41,7 +42,8 @@ public class FileProcessingWorker {
             BidRegexExtractor bidRegexExtractor,
             LlmExtractionClient llmExtractionClient,
             ExtractionMerger extractionMerger,
-            ExtractionPersistenceService persistenceService) {
+            ExtractionPersistenceService persistenceService,
+            BidSimilarityAnalysisService bidSimilarityAnalysisService) {
         this.taskMapper = taskMapper;
         this.fileDownloadClient = fileDownloadClient;
         this.docxTextExtractor = docxTextExtractor;
@@ -50,6 +52,7 @@ public class FileProcessingWorker {
         this.llmExtractionClient = llmExtractionClient;
         this.extractionMerger = extractionMerger;
         this.persistenceService = persistenceService;
+        this.bidSimilarityAnalysisService = bidSimilarityAnalysisService;
     }
 
     public void process(String taskId) {
@@ -101,6 +104,7 @@ public class FileProcessingWorker {
                 BidExtraction regex = bidRegexExtractor.extract(text);
                 BidExtraction merged = extractionMerger.mergeBid(regex, llmResult.bidExtraction());
                 persistenceService.persistBidAndComplete(task, merged);
+                analyzeBidSimilarity(task, merged, text);
             }
             log.info("Finished file processing task successfully: taskId={}, projectId={}, fileId={}, type={}",
                     taskId, task.getProjectId(), task.getFileId(), task.getFileType());
@@ -129,6 +133,18 @@ public class FileProcessingWorker {
         taskMapper.markFailed(task.getTaskId(), rootMessage(exception), LocalDateTime.now());
         log.info("Marked file processing task failed: taskId={}, projectId={}, fileId={}, type={}",
                 task.getTaskId(), task.getProjectId(), task.getFileId(), task.getFileType());
+    }
+
+    private void analyzeBidSimilarity(FileProcessingTask task, BidExtraction extraction, String currentText) {
+        try {
+            bidSimilarityAnalysisService.analyzeForCurrentBid(
+                    task,
+                    extraction.getBidCompanyName(),
+                    currentText);
+        } catch (Exception exception) {
+            log.error("Bid similarity analysis failed but bid extraction remains successful: taskId={}, projectId={}, fileId={}, message={}",
+                    task.getTaskId(), task.getProjectId(), task.getFileId(), rootMessage(exception), exception);
+        }
     }
 
     private String rootMessage(Throwable throwable) {

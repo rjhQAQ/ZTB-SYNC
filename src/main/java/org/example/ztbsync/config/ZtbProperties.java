@@ -10,6 +10,7 @@ public class ZtbProperties {
     private final FileService fileService = new FileService();
     private final Llm llm = new Llm();
     private final Async async = new Async();
+    private final Similarity similarity = new Similarity();
 
     public FileService getFileService() {
         return fileService;
@@ -21,6 +22,10 @@ public class ZtbProperties {
 
     public Async getAsync() {
         return async;
+    }
+
+    public Similarity getSimilarity() {
+        return similarity;
     }
 
     public static class FileService {
@@ -119,6 +124,99 @@ public class ZtbProperties {
 
         public void setQueueCapacity(int queueCapacity) {
             this.queueCapacity = queueCapacity;
+        }
+    }
+
+    public static class Similarity {
+        private boolean enabled = true;
+        private double segmentMatchThreshold = 0.82;
+        private double tenderMatchThreshold = 0.85;
+        private double tenderDerivedWeight = 0.2;
+        private double suspectedThreshold = 70;
+        private double highRiskThreshold = 85;
+        private int topHitLimit = 20;
+        private int minSegmentChars = 30;
+        private boolean llmReviewEnabled;
+        private double llmReviewMinScore = 70;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public double getSegmentMatchThreshold() {
+            return segmentMatchThreshold;
+        }
+
+        public void setSegmentMatchThreshold(double segmentMatchThreshold) {
+            this.segmentMatchThreshold = segmentMatchThreshold;
+        }
+
+        public double getTenderMatchThreshold() {
+            return tenderMatchThreshold;
+        }
+
+        public void setTenderMatchThreshold(double tenderMatchThreshold) {
+            this.tenderMatchThreshold = tenderMatchThreshold;
+        }
+
+        public double getTenderDerivedWeight() {
+            return tenderDerivedWeight;
+        }
+
+        public void setTenderDerivedWeight(double tenderDerivedWeight) {
+            this.tenderDerivedWeight = tenderDerivedWeight;
+        }
+
+        public double getSuspectedThreshold() {
+            return suspectedThreshold;
+        }
+
+        public void setSuspectedThreshold(double suspectedThreshold) {
+            this.suspectedThreshold = suspectedThreshold;
+        }
+
+        public double getHighRiskThreshold() {
+            return highRiskThreshold;
+        }
+
+        public void setHighRiskThreshold(double highRiskThreshold) {
+            this.highRiskThreshold = highRiskThreshold;
+        }
+
+        public int getTopHitLimit() {
+            return topHitLimit;
+        }
+
+        public void setTopHitLimit(int topHitLimit) {
+            this.topHitLimit = topHitLimit;
+        }
+
+        public int getMinSegmentChars() {
+            return minSegmentChars;
+        }
+
+        public void setMinSegmentChars(int minSegmentChars) {
+            this.minSegmentChars = minSegmentChars;
+        }
+
+        public boolean isLlmReviewEnabled() {
+            return llmReviewEnabled;
+        }
+
+        public void setLlmReviewEnabled(boolean llmReviewEnabled) {
+            this.llmReviewEnabled = llmReviewEnabled;
+        }
+
+        public double getLlmReviewMinScore() {
+            return llmReviewMinScore;
+        }
+
+        public void setLlmReviewMinScore(double llmReviewMinScore) {
+            this.llmReviewMinScore = llmReviewMinScore;
         }
     }
 }

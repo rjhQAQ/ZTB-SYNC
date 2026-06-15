@@ -1,5 +1,7 @@
 package org.example.ztbsync.mapper;
 
+import java.util.List;
+
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -23,6 +25,19 @@ public interface ProjectBidderCompanyMapper {
               AND file_id = #{fileId}
             """)
     int countByKey(@Param("projectId") String projectId, @Param("fileId") String fileId);
+
+    /** 查询项目下所有投标企业文件信息。 */
+    @Select("""
+            SELECT id, project_id, file_id, file_name,
+                   bid_company_name, bidder_contact_phone,
+                   registered_address, mailing_address,
+                   project_management_personnel_json,
+                   task_id, created_at, updated_at
+            FROM ztb_project_bidder_company
+            WHERE project_id = #{projectId}
+            ORDER BY updated_at DESC
+            """)
+    List<ProjectBidderCompany> findByProjectId(@Param("projectId") String projectId);
 
     /** 插入新的投标企业信息。 */
     @Insert("""

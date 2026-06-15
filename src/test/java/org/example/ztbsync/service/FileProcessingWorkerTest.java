@@ -12,6 +12,7 @@ import java.util.List;
 
 import org.example.ztbsync.domain.FileProcessingTask;
 import org.example.ztbsync.domain.ProcessingStatus;
+import org.example.ztbsync.extraction.BidExtraction;
 import org.example.ztbsync.extraction.BidRegexExtractor;
 import org.example.ztbsync.extraction.DocxTextExtractor;
 import org.example.ztbsync.extraction.ExtractionMerger;
@@ -33,6 +34,7 @@ class FileProcessingWorkerTest {
         LlmExtractionClient llmExtractionClient = mock(LlmExtractionClient.class);
         ExtractionMerger merger = mock(ExtractionMerger.class);
         ExtractionPersistenceService persistenceService = mock(ExtractionPersistenceService.class);
+        BidSimilarityAnalysisService similarityAnalysisService = mock(BidSimilarityAnalysisService.class);
         FileProcessingWorker worker = new FileProcessingWorker(
                 taskMapper,
                 downloadClient,
@@ -41,7 +43,8 @@ class FileProcessingWorkerTest {
                 mock(BidRegexExtractor.class),
                 llmExtractionClient,
                 merger,
-                persistenceService);
+                persistenceService,
+                similarityAnalysisService);
         FileProcessingTask task = task("task-1", "TENDER");
         TenderExtraction regex = new TenderExtraction();
         TenderExtraction merged = new TenderExtraction();
@@ -58,6 +61,46 @@ class FileProcessingWorkerTest {
 
         verify(taskMapper).markProcessing(eq("task-1"), any(LocalDateTime.class));
         verify(persistenceService).persistTenderAndComplete(task, merged);
+        verify(similarityAnalysisService, never()).analyzeForCurrentBid(any(), any(), any());
+    }
+
+    @Test
+    void latestBidTaskRunsSimilarityAfterPersistence() {
+        FileProcessingTaskMapper taskMapper = mock(FileProcessingTaskMapper.class);
+        FileDownloadClient downloadClient = mock(FileDownloadClient.class);
+        DocxTextExtractor docxTextExtractor = mock(DocxTextExtractor.class);
+        BidRegexExtractor bidRegexExtractor = mock(BidRegexExtractor.class);
+        LlmExtractionClient llmExtractionClient = mock(LlmExtractionClient.class);
+        ExtractionMerger merger = mock(ExtractionMerger.class);
+        ExtractionPersistenceService persistenceService = mock(ExtractionPersistenceService.class);
+        BidSimilarityAnalysisService similarityAnalysisService = mock(BidSimilarityAnalysisService.class);
+        FileProcessingWorker worker = new FileProcessingWorker(
+                taskMapper,
+                downloadClient,
+                docxTextExtractor,
+                mock(TenderRegexExtractor.class),
+                bidRegexExtractor,
+                llmExtractionClient,
+                merger,
+                persistenceService,
+                similarityAnalysisService);
+        FileProcessingTask task = task("task-1", "BID");
+        BidExtraction regex = new BidExtraction();
+        BidExtraction merged = new BidExtraction();
+        merged.setBidCompanyName("甲公司");
+
+        when(taskMapper.findById("task-1")).thenReturn(task);
+        when(taskMapper.findByBusinessKey("project-1", "file-1", "BID")).thenReturn(List.of(task));
+        when(downloadClient.download("file-1")).thenReturn(new byte[] {1, 2, 3});
+        when(docxTextExtractor.extract(any())).thenReturn("投标人名称：甲公司");
+        when(llmExtractionClient.extract(any(), eq("投标人名称：甲公司"))).thenReturn(LlmExtractionResult.empty());
+        when(bidRegexExtractor.extract("投标人名称：甲公司")).thenReturn(regex);
+        when(merger.mergeBid(eq(regex), any(BidExtraction.class))).thenReturn(merged);
+
+        worker.process("task-1");
+
+        verify(persistenceService).persistBidAndComplete(task, merged);
+        verify(similarityAnalysisService).analyzeForCurrentBid(task, "甲公司", "投标人名称：甲公司");
     }
 
     @Test
@@ -72,7 +115,8 @@ class FileProcessingWorkerTest {
                 mock(BidRegexExtractor.class),
                 mock(LlmExtractionClient.class),
                 mock(ExtractionMerger.class),
-                mock(ExtractionPersistenceService.class));
+                mock(ExtractionPersistenceService.class),
+                mock(BidSimilarityAnalysisService.class));
         FileProcessingTask oldTask = task("old-task", "BID");
         FileProcessingTask newTask = task("new-task", "BID");
 

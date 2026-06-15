@@ -26,3 +26,14 @@ ztb:
     core-pool-size: ${ZTB_ASYNC_CORE_POOL_SIZE:2}
     max-pool-size: ${ZTB_ASYNC_MAX_POOL_SIZE:4}
     queue-capacity: ${ZTB_ASYNC_QUEUE_CAPACITY:200}
+  similarity:
+    enabled: ${ZTB_SIMILARITY_ENABLED:true}
+    segment-match-threshold: ${ZTB_SIMILARITY_SEGMENT_MATCH_THRESHOLD:0.82}
+    tender-match-threshold: ${ZTB_SIMILARITY_TENDER_MATCH_THRESHOLD:0.85}
+    tender-derived-weight: ${ZTB_SIMILARITY_TENDER_DERIVED_WEIGHT:0.2}
+    suspected-threshold: ${ZTB_SIMILARITY_SUSPECTED_THRESHOLD:70}
+    high-risk-threshold: ${ZTB_SIMILARITY_HIGH_RISK_THRESHOLD:85}
+    top-hit-limit: ${ZTB_SIMILARITY_TOP_HIT_LIMIT:20}
+    min-segment-chars: ${ZTB_SIMILARITY_MIN_SEGMENT_CHARS:30}
+    llm-review-enabled: ${ZTB_SIMILARITY_LLM_REVIEW_ENABLED:false}
+    llm-review-min-score: ${ZTB_SIMILARITY_LLM_REVIEW_MIN_SCORE:70}
