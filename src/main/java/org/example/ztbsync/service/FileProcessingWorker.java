@@ -73,7 +73,7 @@ public class FileProcessingWorker {
                 taskId, task.getProjectId(), task.getFileId(), task.getFileName(), task.getFileType());
 
         try {
-            byte[] bytes = fileDownloadClient.download(task.getFileId());
+            byte[] bytes = fileDownloadClient.download(task.getFileId(), task.getFileName(), task.getProjectId());
             String text = docxTextExtractor.extract(bytes);
             if (text.isBlank()) {
                 throw new IllegalStateException("DOCX 未解析出有效文本");

@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
  */
 public class BidSimilarityAnalysis {
 
-    private Long id;
+    private String id;
     private String projectId;
     private String tenderFileId;
     private String tenderFileName;
@@ -27,11 +27,11 @@ public class BidSimilarityAnalysis {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 

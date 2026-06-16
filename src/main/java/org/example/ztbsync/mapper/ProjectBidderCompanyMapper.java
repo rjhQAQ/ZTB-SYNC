@@ -42,13 +42,13 @@ public interface ProjectBidderCompanyMapper {
     /** 插入新的投标企业信息。 */
     @Insert("""
             INSERT INTO ztb_project_bidder_company (
-                project_id, file_id, file_name,
+                id, project_id, file_id, file_name,
                 bid_company_name, bidder_contact_phone,
                 registered_address, mailing_address,
                 project_management_personnel_json,
                 task_id, created_at, updated_at
             ) VALUES (
-                #{projectId}, #{fileId}, #{fileName},
+                #{id}, #{projectId}, #{fileId}, #{fileName},
                 #{bidCompanyName}, #{bidderContactPhone},
                 #{registeredAddress}, #{mailingAddress},
                 #{projectManagementPersonnelJson},

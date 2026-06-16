@@ -2,19 +2,24 @@ spring:
   application:
     name: ZTB-SYNC
   # Oscar/ShenTong database. Fill these in for runtime deployments.
-  # datasource:
-  #   driver-class-name: com.oscar.Driver
-  #   url: jdbc:oscar://127.0.0.1:2003/OSRDB
-  #   username:
-  #   password:
-
+  datasource:
+    driver-class-name: com.oscar.Driver
+    url: jdbc:oscar://172.16.1.134:2003/OSRDB
+    username: sysdba
+    password: szoscar55
+  servlet:
+    multipart:
+      # 上传 Word 文件大小限制；超过该值会触发 MaxUploadSizeExceededException。
+      max-file-size: 100MB
+      max-request-size: 100MB
 mybatis:
   configuration:
     map-underscore-to-camel-case: true
 
 ztb:
   file-service:
-    download-url-template: ${ZTB_FILE_DOWNLOAD_URL_TEMPLATE:http://127.0.0.1:8081/files/{fileId}}
+    download-url-template: ${ZTB_FILE_DOWNLOAD_URL_TEMPLATE:http://127.0.0.1:8081/files/download}
+    trust-all-ssl: ${ZTB_FILE_SERVICE_TRUST_ALL_SSL:true}
   llm:
     enabled: ${ZTB_LLM_ENABLED:false}
     base-url: ${ZTB_LLM_BASE_URL:}

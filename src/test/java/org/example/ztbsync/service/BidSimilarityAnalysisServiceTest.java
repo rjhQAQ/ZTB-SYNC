@@ -61,8 +61,8 @@ class BidSimilarityAnalysisServiceTest {
 
         when(projectInfoMapper.findByProjectId("project-1")).thenReturn(List.of(tender));
         when(bidderMapper.findByProjectId("project-1")).thenReturn(List.of(peer, bidder("current-file", "甲公司")));
-        when(downloadClient.download("tender-file")).thenReturn(new byte[] {1});
-        when(downloadClient.download("peer-file")).thenReturn(new byte[] {2});
+        when(downloadClient.download("tender-file", "招标.docx", "project-1")).thenReturn(new byte[] {1});
+        when(downloadClient.download("peer-file", "peer-file.docx", "project-1")).thenReturn(new byte[] {2});
         when(docxTextExtractor.extract(new byte[] {1})).thenReturn("招标文本");
         when(docxTextExtractor.extract(new byte[] {2})).thenReturn("历史投标文本");
         when(calculator.calculate(any(), any(), eq("招标文本"))).thenReturn(result);
@@ -101,9 +101,10 @@ class BidSimilarityAnalysisServiceTest {
 
         when(projectInfoMapper.findByProjectId("project-1")).thenReturn(List.of(tender()));
         when(bidderMapper.findByProjectId("project-1")).thenReturn(List.of(bidder("peer-file", "乙公司")));
-        when(downloadClient.download("tender-file")).thenReturn(new byte[] {1});
+        when(downloadClient.download("tender-file", "招标.docx", "project-1")).thenReturn(new byte[] {1});
         when(docxTextExtractor.extract(new byte[] {1})).thenReturn("招标文本");
-        when(downloadClient.download("peer-file")).thenThrow(new IllegalStateException("download failed"));
+        when(downloadClient.download("peer-file", "peer-file.docx", "project-1"))
+                .thenThrow(new IllegalStateException("download failed"));
 
         service.analyzeForCurrentBid(task(), "甲公司", "当前投标文本");
 

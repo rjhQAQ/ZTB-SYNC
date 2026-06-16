@@ -29,7 +29,8 @@ public class ZtbProperties {
     }
 
     public static class FileService {
-        private String downloadUrlTemplate = "http://127.0.0.1:8081/files/{fileId}";
+        private String downloadUrlTemplate = "http://127.0.0.1:8081/files/download";
+        private boolean trustAllSsl;
 
         public String getDownloadUrlTemplate() {
             return downloadUrlTemplate;
@@ -37,6 +38,14 @@ public class ZtbProperties {
 
         public void setDownloadUrlTemplate(String downloadUrlTemplate) {
             this.downloadUrlTemplate = downloadUrlTemplate;
+        }
+
+        public boolean isTrustAllSsl() {
+            return trustAllSsl;
+        }
+
+        public void setTrustAllSsl(boolean trustAllSsl) {
+            this.trustAllSsl = trustAllSsl;
         }
     }
 

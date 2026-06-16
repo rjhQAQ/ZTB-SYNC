@@ -10,7 +10,7 @@ ZTB-SYNC 是一个用于招投标文件上传受理、文件下载、DOCX 文本
 
 - 支持招标文件和投标文件两类文件，接口类型值支持 `TENDER`、`BID`、`招标文件`、`投标文件`。
 - v1 仅支持 `.docx` 文件。
-- 文件来源通过配置项 `ztb.file-service.download-url-template` 指定，例如 `http://host/files/{fileId}`。
+- 文件来源通过配置项 `ztb.file-service.download-url-template` 指定，服务会用 POST 请求下载文件字节。
 - 抽取方式为正则抽取 + OpenAI-compatible LLM 抽取，正则字段优先，LLM 用于补全复杂或遗漏信息。
 - 投标文件上传后会自动和同项目已有投标文件做两两雷同分析。
 - 雷同分析使用自实现字符 3-gram Jaccard，不引入额外相似度库；招标文件作为基准文本参与降权。
@@ -73,6 +73,61 @@ GET /api/files/tasks/{taskId}
 
 ```http
 GET /api/files/tasks/latest?projectId=project-001&fileId=file-001&type=TENDER
+```
+
+### 测试用文件下载
+
+```http
+POST /api/files/download-test
+Content-Type: application/json
+```
+
+请求体：
+
+```json
+{
+  "projectId": "project-001",
+  "fileId": "file-001",
+  "fileName": "投标文件.docx"
+}
+```
+
+该接口会代调配置的文件服务，并把下载到的 `byte[]` 作为附件流返回，主要用于联调文件服务 POST 参数是否正确。
+
+示例：
+
+```bash
+curl -X POST 'http://127.0.0.1:8080/api/files/download-test' \
+  -H 'Content-Type: application/json' \
+  -d '{"projectId":"project-001","fileId":"file-001","fileName":"投标文件.docx"}' \
+  -o 投标文件.docx
+```
+
+### 测试神通数据库连接
+
+```http
+GET /api/database/test
+```
+
+该接口会获取当前 `spring.datasource` 配置的数据源连接，读取 JDBC 元信息，并执行固定校验查询 `SELECT 1`。如果当前数据库方言不支持，会自动尝试 `SELECT 1 FROM DUAL`。接口不会接收或执行外部传入的 SQL。
+
+成功响应示例：
+
+```json
+{
+  "success": true,
+  "connectionValid": true,
+  "databaseProductName": "Oscar",
+  "databaseProductVersion": "8",
+  "driverName": "Oscar JDBC Driver",
+  "driverVersion": "8",
+  "url": "jdbc:oscar://127.0.0.1:2003/OSRDB",
+  "username": "SYSDBA",
+  "validationQuery": "SELECT 1",
+  "validationResult": "1",
+  "elapsedMs": 12,
+  "message": "神通数据库连接和基础查询正常"
+}
 ```
 
 ### 测试用同步抽取
@@ -168,7 +223,7 @@ GET /api/bid-similarity/projects/{projectId}/files/{fileId}/results
 1. 调用 `POST /api/files/upload` 创建任务，任务状态为 `PENDING`。
 2. 事务提交后，后台线程开始处理任务。
 3. 任务状态更新为 `PROCESSING`。
-4. 根据 `fileId` 调用文件下载接口获取 `ResponseEntity<byte[]>` 中的文件内容。
+4. 调用文件下载接口获取 `ResponseEntity<byte[]>` 中的文件内容。
 5. 使用 Apache POI 解析 DOCX 文本。
 6. 执行正则抽取。
 7. 如果启用 LLM，则调用 OpenAI-compatible `/chat/completions` 接口并解析 JSON。
@@ -228,8 +283,31 @@ spring:
 ```yaml
 ztb:
   file-service:
-    download-url-template: http://127.0.0.1:8081/files/{fileId}
+    download-url-template: http://127.0.0.1:8081/files/download
+    trust-all-ssl: false
 ```
+
+下载请求使用 `POST`，JSON body 固定包含：
+
+```json
+{
+  "fileId": "文件ID",
+  "fileName": "文件名称.docx",
+  "projectId": "项目ID"
+}
+```
+
+如果文件服务 URL 仍需要路径变量，`download-url-template` 也可以继续配置为 `http://host/files/{fileId}`，请求 body 仍会带上三项参数。
+
+如果文件服务返回 `301 Moved Permanently`、`302`、`307` 或 `308`，下载客户端会按响应头 `Location` 继续使用 `POST` 重试，且保留原 JSON body。部署时仍建议把 `download-url-template` 配成最终地址，例如直接使用 HTTPS 地址或网关最终路径，避免每次下载多一次重定向。
+
+如果 HTTP 被网关重定向到 HTTPS，但联调环境证书链不完整，可以临时打开文件服务专用的证书跳过开关：
+
+```bash
+export ZTB_FILE_SERVICE_TRUST_ALL_SSL=true
+```
+
+该开关只影响文件下载用的 `RestTemplate`。生产环境建议保持 `false`，并修复网关或服务端 HTTPS 证书链。
 
 也可以通过环境变量覆盖：
 

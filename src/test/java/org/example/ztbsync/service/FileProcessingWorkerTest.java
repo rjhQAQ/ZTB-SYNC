@@ -51,7 +51,7 @@ class FileProcessingWorkerTest {
 
         when(taskMapper.findById("task-1")).thenReturn(task);
         when(taskMapper.findByBusinessKey("project-1", "file-1", "TENDER")).thenReturn(List.of(task));
-        when(downloadClient.download("file-1")).thenReturn(new byte[] {1, 2, 3});
+        when(downloadClient.download("file-1", "文件.docx", "project-1")).thenReturn(new byte[] {1, 2, 3});
         when(docxTextExtractor.extract(any())).thenReturn("项目名称：测试项目");
         when(llmExtractionClient.extract(any(), eq("项目名称：测试项目"))).thenReturn(LlmExtractionResult.empty());
         when(tenderRegexExtractor.extract("项目名称：测试项目")).thenReturn(regex);
@@ -91,7 +91,7 @@ class FileProcessingWorkerTest {
 
         when(taskMapper.findById("task-1")).thenReturn(task);
         when(taskMapper.findByBusinessKey("project-1", "file-1", "BID")).thenReturn(List.of(task));
-        when(downloadClient.download("file-1")).thenReturn(new byte[] {1, 2, 3});
+        when(downloadClient.download("file-1", "文件.docx", "project-1")).thenReturn(new byte[] {1, 2, 3});
         when(docxTextExtractor.extract(any())).thenReturn("投标人名称：甲公司");
         when(llmExtractionClient.extract(any(), eq("投标人名称：甲公司"))).thenReturn(LlmExtractionResult.empty());
         when(bidRegexExtractor.extract("投标人名称：甲公司")).thenReturn(regex);
@@ -126,7 +126,7 @@ class FileProcessingWorkerTest {
         worker.process("old-task");
 
         verify(taskMapper).markSuperseded(eq("old-task"), any(LocalDateTime.class));
-        verify(downloadClient, never()).download(any());
+        verify(downloadClient, never()).download(any(), any(), any());
     }
 
     private FileProcessingTask task(String taskId, String type) {

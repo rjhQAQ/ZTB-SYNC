@@ -42,13 +42,13 @@ public interface ProjectInfoMapper {
     /** 插入新的招标项目信息。 */
     @Insert("""
             INSERT INTO ztb_project_info (
-                project_id, file_id, file_name,
+                id, project_id, file_id, file_name,
                 tender_company_name, agency_name, project_name,
                 bid_submit_start_time, bid_submit_end_time,
                 range_start_time, range_end_time, all_time_points_json,
                 task_id, created_at, updated_at
             ) VALUES (
-                #{projectId}, #{fileId}, #{fileName},
+                #{id}, #{projectId}, #{fileId}, #{fileName},
                 #{tenderCompanyName}, #{agencyName}, #{projectName},
                 #{bidSubmitStartTime}, #{bidSubmitEndTime},
                 #{rangeStartTime}, #{rangeEndTime}, #{allTimePointsJson},

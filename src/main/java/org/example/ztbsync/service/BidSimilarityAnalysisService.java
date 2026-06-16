@@ -3,6 +3,7 @@ package org.example.ztbsync.service;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -84,7 +85,7 @@ public class BidSimilarityAnalysisService {
             tenderError = "项目缺少招标文件，无法执行招标来源降权";
         } else {
             try {
-                tenderText = downloadText(tender.getFileId());
+                tenderText = downloadText(task.getProjectId(), tender.getFileId(), tender.getFileName());
             } catch (Exception exception) {
                 tenderError = rootMessage(exception);
             }
@@ -101,7 +102,7 @@ public class BidSimilarityAnalysisService {
                 continue;
             }
             try {
-                String otherText = downloadText(other.getFileId());
+                String otherText = downloadText(task.getProjectId(), other.getFileId(), other.getFileName());
                 SimilarityDocument peer = fromCompany(other, otherText);
                 SimilarityPair pair = orderPair(current, peer);
                 SimilarityComputationResult result = calculator.calculate(pair.left(), pair.right(), tenderText);
@@ -117,8 +118,8 @@ public class BidSimilarityAnalysisService {
         }
     }
 
-    private String downloadText(String fileId) {
-        byte[] bytes = fileDownloadClient.download(fileId);
+    private String downloadText(String projectId, String fileId, String fileName) {
+        byte[] bytes = fileDownloadClient.download(fileId, fileName, projectId);
         return docxTextExtractor.extract(bytes);
     }
 
@@ -169,6 +170,7 @@ public class BidSimilarityAnalysisService {
 
     private BidSimilarityAnalysis base(FileProcessingTask task, ProjectInfo tender, SimilarityPair pair, LocalDateTime now) {
         BidSimilarityAnalysis analysis = new BidSimilarityAnalysis();
+        analysis.setId(UUID.randomUUID().toString());
         analysis.setProjectId(task.getProjectId());
         analysis.setTenderFileId(tender == null ? null : tender.getFileId());
         analysis.setTenderFileName(tender == null ? null : tender.getFileName());

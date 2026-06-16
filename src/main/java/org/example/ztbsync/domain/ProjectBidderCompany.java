@@ -7,8 +7,8 @@ import java.time.LocalDateTime;
  */
 public class ProjectBidderCompany {
 
-    /** 数据库自增主键。 */
-    private Long id;
+    /** UUID 主键。 */
+    private String id;
     /** 项目 ID。 */
     private String projectId;
     /** 投标文件 ID。 */
@@ -32,11 +32,11 @@ public class ProjectBidderCompany {
     /** 记录更新时间。 */
     private LocalDateTime updatedAt;
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 

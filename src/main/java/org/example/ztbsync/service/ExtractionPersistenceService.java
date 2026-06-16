@@ -1,6 +1,7 @@
 package org.example.ztbsync.service;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,6 +43,7 @@ public class ExtractionPersistenceService {
     public void persistTenderAndComplete(FileProcessingTask task, TenderExtraction extraction) {
         LocalDateTime now = LocalDateTime.now();
         ProjectInfo projectInfo = new ProjectInfo();
+        projectInfo.setId(UUID.randomUUID().toString());
         projectInfo.setProjectId(task.getProjectId());
         projectInfo.setFileId(task.getFileId());
         projectInfo.setFileName(task.getFileName());
@@ -73,6 +75,7 @@ public class ExtractionPersistenceService {
     public void persistBidAndComplete(FileProcessingTask task, BidExtraction extraction) {
         LocalDateTime now = LocalDateTime.now();
         ProjectBidderCompany company = new ProjectBidderCompany();
+        company.setId(UUID.randomUUID().toString());
         company.setProjectId(task.getProjectId());
         company.setFileId(task.getFileId());
         company.setFileName(task.getFileName());

@@ -37,13 +37,13 @@ public interface BidSimilarityAnalysisMapper {
 
     @Insert("""
             INSERT INTO ztb_bid_similarity_analysis (
-                project_id, tender_file_id, tender_file_name,
+                id, project_id, tender_file_id, tender_file_name,
                 left_file_id, left_file_name, left_company_name,
                 right_file_id, right_file_name, right_company_name,
                 score, risk_level, status, hit_fragments_json, llm_review_json,
                 error_message, task_id, created_at, updated_at
             ) VALUES (
-                #{projectId}, #{tenderFileId}, #{tenderFileName},
+                #{id}, #{projectId}, #{tenderFileId}, #{tenderFileName},
                 #{leftFileId}, #{leftFileName}, #{leftCompanyName},
                 #{rightFileId}, #{rightFileName}, #{rightCompanyName},
                 #{score}, #{riskLevel}, #{status}, #{hitFragmentsJson}, #{llmReviewJson},
