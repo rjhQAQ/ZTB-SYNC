@@ -4,14 +4,25 @@ spring:
   # Oscar/ShenTong database. Fill these in for runtime deployments.
   datasource:
     driver-class-name: com.oscar.Driver
-    url: jdbc:oscar://172.16.1.134:2003/OSRDB
-    username: sysdba
-    password: szoscar55
+    url: ${ZTB_DB_URL:jdbc:oscar://172.16.1.134:2003/OSRDB}
+    username: ${ZTB_DB_USER:sjs}
+    password: ${ZTB_DB_PASSWORD:szoscar55}
   servlet:
     multipart:
       # 上传 Word 文件大小限制；超过该值会触发 MaxUploadSizeExceededException。
       max-file-size: 100MB
       max-request-size: 100MB
+  ai:
+    mcp:
+      server:
+        name: ztb-sync-rag
+        version: 1.0.0
+        protocol: STATELESS
+        type: SYNC
+        enabled: true
+        annotation-scanner:
+          enabled: true
+
 mybatis:
   configuration:
     map-underscore-to-camel-case: true
@@ -25,7 +36,7 @@ ztb:
     base-url: ${ZTB_LLM_BASE_URL:}
     api-key: ${ZTB_LLM_API_KEY:}
     model: ${ZTB_LLM_MODEL:gpt-4o-mini}
-    timeout: ${ZTB_LLM_TIMEOUT:30s}
+    timeout: ${ZTB_LLM_TIMEOUT:600s}
     max-input-chars: ${ZTB_LLM_MAX_INPUT_CHARS:20000}
   async:
     core-pool-size: ${ZTB_ASYNC_CORE_POOL_SIZE:2}
@@ -42,3 +53,51 @@ ztb:
     min-segment-chars: ${ZTB_SIMILARITY_MIN_SEGMENT_CHARS:30}
     llm-review-enabled: ${ZTB_SIMILARITY_LLM_REVIEW_ENABLED:false}
     llm-review-min-score: ${ZTB_SIMILARITY_LLM_REVIEW_MIN_SCORE:70}
+  embedding:
+    enabled: ${ZTB_EMBEDDING_ENABLED:true}
+    base-url: ${ZTB_EMBEDDING_BASE_URL:http://172.16.24.64:8812}
+    api-key: ${ZTB_EMBEDDING_API_KEY:123}
+    model: ${ZTB_EMBEDDING_MODEL:bge-base-zh-v1.5}
+    endpoint: ${ZTB_EMBEDDING_ENDPOINT:/v1/embeddings}
+    timeout: ${ZTB_EMBEDDING_TIMEOUT:300s}
+    batch-size: ${ZTB_EMBEDDING_BATCH_SIZE:10}
+    vector-dims: ${ZTB_EMBEDDING_VECTOR_DIMS:768}
+    target-chunk-chars: ${ZTB_EMBEDDING_TARGET_CHUNK_CHARS:500}
+    max-chunk-chars: ${ZTB_EMBEDDING_MAX_CHUNK_CHARS:800}
+    min-chunk-chars: ${ZTB_EMBEDDING_MIN_CHUNK_CHARS:80}
+    overlap-chars: ${ZTB_EMBEDDING_OVERLAP_CHARS:120}
+    filter-boilerplate: ${ZTB_EMBEDDING_FILTER_BOILERPLATE:true}
+    keep-boilerplate: ${ZTB_EMBEDDING_KEEP_BOILERPLATE:true}
+  elasticsearch:
+    base-url: ${ZTB_ES_BASE_URL:http://127.0.0.1:9200/}
+    username: ${ZTB_ES_USERNAME:}
+    password: ${ZTB_ES_PASSWORD:}
+    index-name: ${ZTB_ES_INDEX_NAME:ztb_file_embedding_v2}
+    project-name-index-name: ${ZTB_ES_PROJECT_NAME_INDEX_NAME:ztb_tender_project_name}
+    project-name-analyzer: ${ZTB_ES_PROJECT_NAME_ANALYZER:ik_max_word}
+    project-name-search-analyzer: ${ZTB_ES_PROJECT_NAME_SEARCH_ANALYZER:ik_smart}
+    chunk-analyzer: ${ZTB_ES_CHUNK_ANALYZER:ik_max_word}
+    chunk-search-analyzer: ${ZTB_ES_CHUNK_SEARCH_ANALYZER:ik_smart}
+    auto-create-index: ${ZTB_ES_AUTO_CREATE_INDEX:true}
+    timeout: ${ZTB_ES_TIMEOUT:30s}
+  rag-search:
+    mode: ${ZTB_RAG_SEARCH_MODE:HYBRID}
+    default-top-k: ${ZTB_RAG_SEARCH_DEFAULT_TOP_K:3}
+    max-top-k: ${ZTB_RAG_SEARCH_MAX_TOP_K:20}
+    include-boilerplate: ${ZTB_RAG_SEARCH_INCLUDE_BOILERPLATE:false}
+    filter-model: ${ZTB_RAG_SEARCH_FILTER_MODEL:true}
+    min-score: ${ZTB_RAG_SEARCH_MIN_SCORE:0}
+    vector-candidate-size: ${ZTB_RAG_SEARCH_VECTOR_CANDIDATE_SIZE:50}
+    keyword-candidate-size: ${ZTB_RAG_SEARCH_KEYWORD_CANDIDATE_SIZE:50}
+    rrf-rank-constant: ${ZTB_RAG_SEARCH_RRF_RANK_CONSTANT:60}
+    vector-weight: ${ZTB_RAG_SEARCH_VECTOR_WEIGHT:0.6}
+    keyword-weight: ${ZTB_RAG_SEARCH_KEYWORD_WEIGHT:0.4}
+  rerank:
+    enabled: ${ZTB_RERANK_ENABLED:true}
+    base-url: ${ZTB_RERANK_BASE_URL:}
+    api-key: ${ZTB_RERANK_API_KEY:}
+    model: ${ZTB_RERANK_MODEL:bge-rerank}
+    endpoint: ${ZTB_RERANK_ENDPOINT:/v1/rerank}
+    timeout: ${ZTB_RERANK_TIMEOUT:30s}
+    candidate-size: ${ZTB_RERANK_CANDIDATE_SIZE:50}
+    fallback-to-hybrid: ${ZTB_RERANK_FALLBACK_TO_HYBRID:true}

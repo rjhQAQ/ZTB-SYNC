@@ -33,8 +33,12 @@ public class ExtractionMerger {
                 ? safeRegex.getBidSubmitEndTime()
                 : safeLlm.getBidSubmitEndTime());
         merged.setTimePoints(mergeTimePoints(safeRegex.getTimePoints(), safeLlm.getTimePoints()));
-        timeNormalizer.earliest(merged.getTimePoints()).ifPresent(merged::setRangeStartTime);
-        timeNormalizer.latest(merged.getTimePoints()).ifPresent(merged::setRangeEndTime);
+        timeNormalizer.earliest(merged.getTimePoints())
+                .map(timeNormalizer::format)
+                .ifPresent(merged::setRangeStartTime);
+        timeNormalizer.latest(merged.getTimePoints())
+                .map(timeNormalizer::format)
+                .ifPresent(merged::setRangeEndTime);
         return merged;
     }
 

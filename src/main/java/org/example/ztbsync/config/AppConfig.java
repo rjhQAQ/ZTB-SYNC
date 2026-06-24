@@ -25,8 +25,8 @@ import org.springframework.web.client.RestTemplate;
 @EnableConfigurationProperties(ZtbProperties.class)
 public class AppConfig {
 
-    @Bean
-    RestTemplate restTemplate(RestTemplateBuilder builder, ZtbProperties properties) {
+    @Bean("fileDownloadRestTemplate")
+    RestTemplate fileDownloadRestTemplate(RestTemplateBuilder builder, ZtbProperties properties) {
         return builder
                 .requestFactory(() -> requestFactory(properties.getFileService().isTrustAllSsl()))
                 .errorHandler(new ResponseErrorHandler() {
@@ -36,6 +36,53 @@ public class AppConfig {
                     }
                 })
                 .build();
+    }
+
+    @Bean("embeddingRestTemplate")
+    RestTemplate embeddingRestTemplate(RestTemplateBuilder builder, ZtbProperties properties) {
+        return builder
+                .requestFactory(() -> timeoutRequestFactory(properties.getEmbedding().getTimeout()))
+                .errorHandler(new ResponseErrorHandler() {
+                    @Override
+                    public boolean hasError(ClientHttpResponse response) {
+                        return false;
+                    }
+                })
+                .build();
+    }
+
+    @Bean("elasticsearchRestTemplate")
+    RestTemplate elasticsearchRestTemplate(RestTemplateBuilder builder, ZtbProperties properties) {
+        return builder
+                .requestFactory(() -> timeoutRequestFactory(properties.getElasticsearch().getTimeout()))
+                .errorHandler(new ResponseErrorHandler() {
+                    @Override
+                    public boolean hasError(ClientHttpResponse response) {
+                        return false;
+                    }
+                })
+                .build();
+    }
+
+    @Bean("rerankRestTemplate")
+    RestTemplate rerankRestTemplate(RestTemplateBuilder builder, ZtbProperties properties) {
+        return builder
+                .requestFactory(() -> timeoutRequestFactory(properties.getRerank().getTimeout()))
+                .errorHandler(new ResponseErrorHandler() {
+                    @Override
+                    public boolean hasError(ClientHttpResponse response) {
+                        return false;
+                    }
+                })
+                .build();
+    }
+
+    private SimpleClientHttpRequestFactory timeoutRequestFactory(java.time.Duration timeout) {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        int timeoutMillis = Math.toIntExact(timeout.toMillis());
+        requestFactory.setConnectTimeout(timeoutMillis);
+        requestFactory.setReadTimeout(timeoutMillis);
+        return requestFactory;
     }
 
     private SimpleClientHttpRequestFactory requestFactory(boolean trustAllSsl) {

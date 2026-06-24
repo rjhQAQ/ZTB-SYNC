@@ -1,8 +1,8 @@
 # ZTB-SYNC
 
-ZTB-SYNC 是一个用于招投标文件上传受理、文件下载、DOCX 文本解析、信息抽取和落库的 Spring Boot 服务。
+ZTB-SYNC 是一个用于招投标文件上传受理、文件下载、DOCX 文本解析、信息抽取、雷同分析和 RAG 向量入库的 Spring Boot 服务。
 
-当前版本的上传接口不接收 multipart 文件，只接收项目和文件元数据，然后通过 `fileId` 调用外部 REST 文件服务获取 `byte[]` 文件内容。文件处理采用异步任务模式，接口先返回任务 ID，后台完成下载、抽取和数据库写入。
+当前版本的上传接口不接收 multipart 文件，只接收项目和文件元数据，然后通过 `fileId` 调用外部 REST 文件服务获取 `byte[]` 文件内容。文件处理采用异步任务模式，接口先返回任务 ID，后台完成下载、抽取、数据库写入，并在开启配置后生成 embedding 写入 Elasticsearch。
 
 另外提供一个测试用同步抽取接口，允许直接上传 DOCX 文件和文件类型，立即返回正则、LLM 和合并后的抽取结果。该接口不创建任务、不写数据库。
 
@@ -14,19 +14,25 @@ ZTB-SYNC 是一个用于招投标文件上传受理、文件下载、DOCX 文本
 - 抽取方式为正则抽取 + OpenAI-compatible LLM 抽取，正则字段优先，LLM 用于补全复杂或遗漏信息。
 - 投标文件上传后会自动和同项目已有投标文件做两两雷同分析。
 - 雷同分析使用自实现字符 3-gram Jaccard，不引入额外相似度库；招标文件作为基准文本参与降权。
+- 招标文件入库后会把项目名称写入独立 ES 索引 `ztb_tender_project_name`，使用 IK 中文分词器支持项目名称检索。
+- 可选生成 RAG chunk，调用 OpenAI-compatible embedding 接口，使用 `bge-base-zh-v1.5` 模型并写入 Elasticsearch 7.9.3 `dense_vector`。
+- embedding 默认关闭；embedding 或 ES 写入失败不会影响主任务成功，只会写入任务表的 embedding 状态和错误信息。
 - 使用 MyBatis 写入神通/Oscar 数据库。
 - 重复上传同一个 `projectId + fileId + type` 会重新处理，业务表按最新任务覆盖。
 - 如果旧任务晚于新任务执行，会被标记为 `SUPERSEDED`，不会覆盖最新结果。
-- 任务状态包括 `PENDING`、`PROCESSING`、`SUCCESS`、`FAILED`、`SUPERSEDED`。
+- 主任务状态包括 `PENDING`、`PROCESSING`、`SUCCESS`、`FAILED`、`SUPERSEDED`。
+- embedding 状态包括 `SKIPPED`、`PROCESSING`、`SUCCESS`、`FAILED`。
 
 ## 技术栈
 
 - Java 21
 - Spring Boot 3.5.15
-- Spring Web / RestClient
+- Spring Web / RestClient / RestTemplate
 - MyBatis Spring Boot Starter 3.0.4
 - Apache POI 5.5.1
 - 神通/Oscar JDBC 驱动 `com.oscar:oscar:8`
+- Elasticsearch 7.9.3 `dense_vector`
+- Elasticsearch IK analysis 插件
 
 ## 主要接口
 
@@ -67,7 +73,7 @@ Content-Type: application/json
 GET /api/files/tasks/{taskId}
 ```
 
-返回任务状态、错误信息和抽取结果摘要。
+返回任务状态、错误信息、抽取结果摘要，以及 embedding 状态、错误信息和已写入 chunk 数量。
 
 ### 查询某文件最新任务
 
@@ -152,6 +158,34 @@ curl -X POST 'http://127.0.0.1:8080/api/files/extract-test' \
   -F 'file=@/path/to/投标文件.docx'
 ```
 
+### 测试用直接写入 Embedding
+
+```http
+POST /api/files/embedding-test
+Content-Type: multipart/form-data
+```
+
+表单字段：
+
+- `file`：上传的 `.docx` 文件。
+- `projectId`：项目 ID。
+- `fileId`：文件 ID。
+- `fileName`：文件名称，可选；不传时使用上传文件原始名称。
+- `type`：文件类型，支持 `TENDER`、`BID`、`招标文件`、`投标文件`。
+
+该接口会直接对上传 DOCX 做 RAG chunk、调用 embedding 服务并写入 Elasticsearch，不创建异步任务，不写神通任务表。使用前需要配置 `ZTB_EMBEDDING_BASE_URL` 和 `ZTB_ES_BASE_URL`。
+
+示例：
+
+```bash
+curl -X POST 'http://127.0.0.1:8080/api/files/embedding-test' \
+  -F 'projectId=project-001' \
+  -F 'fileId=file-001' \
+  -F 'fileName=投标文件.docx' \
+  -F 'type=BID' \
+  -F 'file=@/path/to/投标文件.docx'
+```
+
 ### 查询项目雷同分析结果
 
 ```http
@@ -218,6 +252,84 @@ GET /api/bid-similarity/projects/{projectId}/files/{fileId}/results
 
 命中片段默认最多保存前 20 条，字段包含两边原文、相似度、是否招标来源、权重和命中原因。
 
+## 项目名称搜索索引
+
+招标文件 `TENDER` 抽取结果写入神通业务表成功后，会把项目名称写入 ES 索引 `ztb_tender_project_name`。该索引用于项目名称中文分词检索，不存储全文和向量。
+
+- 文档 ID：`projectId_fileId`
+- `projectName`：`text`，`analyzer=ik_max_word`，`search_analyzer=ik_smart`
+- `projectNameKeyword`：`keyword`，用于精确匹配和聚合
+- 写入失败不会影响招标文件主任务成功
+
+手动建索引文档见：
+
+```text
+docs/elasticsearch-project-name-mapping.md
+```
+
+## RAG 向量入库
+
+RAG embedding 默认关闭，开启后在业务表入库成功后执行：
+
+- 从 DOCX 中提取段落、标题、列表项和表格行，形成结构化 block。
+- 按标题路径维护 `sectionPath`，短段合并，长段拆分，同章节 chunk 之间保留 overlap。
+- 默认 chunk 参数：目标长度 `500`，最大 `800`，最小 `80`，重叠 `120`。
+- 对授权委托书、投标函、声明、签字盖章等制式化内容标记 `boilerplate`，默认仍保留入库，便于后续 RAG 自行过滤。
+- 调用 OpenAI-compatible `POST /v1/embeddings`，请求体为 `{"model":"bge-base-zh-v1.5","input":["文本1","文本2"]}`。
+- 向量维度按 `768` 校验，返回数量和 chunk 数量不一致会标记 embedding 失败。
+- Elasticsearch 索引默认名为 `ztb_file_embedding_v2`，重复上传同一 `projectId + fileId + fileType` 时会删除旧 chunk 后写入当前任务的新 chunk。
+- 向量化输入使用 `embeddingText`，会拼入文件类型、文件名、章节路径和正文；返回给用户时仍使用原始 `chunkText`。
+
+ES 文档 `_id` 格式：
+
+```text
+projectId_fileId_fileType_taskId_chunkIndex
+```
+
+ES 字段要点：
+
+- `projectId`、`fileId`、`fileName`、`fileType`、`taskId`
+- `chunkIndex`、`chunkText`、`sectionPath`、`sectionPathText`、`embeddingText`、`blockTypes`
+- `boilerplate`、`charStart`、`charEnd`
+- `model`
+- `embedding`：`dense_vector`，默认 `dims=768`
+- `createdAt`
+
+## RAG 查询和 MCP 工具
+
+RAG 查询使用已经写入 `ztb_file_embedding_v2` 的 chunk，不重新下载文件，也不查询神通全文表。
+
+- REST 接口：`POST /api/rag/search`
+- MCP 工具：`search_ztb_project_documents`
+- 查询入参：`project_id`、`user_question`、`top_k`、可选 `file_type=ALL|TENDER|BID`
+- `top_k` 表示返回的命中片段数量，不按文件去重
+- 查询默认使用 HYBRID 模式：向量召回 + IK BM25 关键词召回 + RRF 合并 + `bge-rerank` 重排
+- 默认过滤 `boilerplate=false`，默认按当前 `embedding.model` 过滤，避免不同模型向量混查
+- `bge-rerank` 不可用时默认降级为混合检索结果
+- 无命中返回 `404` 和提示：`该项目尚未上传或解析招投标文件，无法进行文档内容审计。`
+- embedding 或 ES 查询失败返回 `502`
+
+响应中的 `matched_documents` 每一项代表一个命中片段：
+
+- `doc_id`：文件 ID
+- `doc_type`：`招标文件` 或 `投标文件`
+- `doc_name`：文件名称
+- `relevant_chapters`：由 chunk 的 `sectionPath` 拆分得到
+- `source_text`：命中的原文片段
+- `score`：归一化后的相似度分数，范围 `0-1`
+
+接口和 MCP 说明见：
+
+```text
+docs/mcp-rag-query.md
+```
+
+已有项目升级到 v2 索引时，可以调用重建接口重新下载文件并写入 ES：
+
+```http
+POST /api/rag/reindex/projects/{projectId}
+```
+
 ## 处理流程
 
 1. 调用 `POST /api/files/upload` 创建任务，任务状态为 `PENDING`。
@@ -229,7 +341,10 @@ GET /api/bid-similarity/projects/{projectId}/files/{fileId}/results
 7. 如果启用 LLM，则调用 OpenAI-compatible `/chat/completions` 接口并解析 JSON。
 8. 合并正则和 LLM 结果，正则优先。
 9. 写入对应业务表，并将任务状态更新为 `SUCCESS`。
-10. 异常时任务状态更新为 `FAILED`，并记录错误信息。
+10. 招标文件会额外把项目名称写入 ES 中文分词索引。
+11. 如果开启 embedding，则生成 RAG chunk、调用 embedding 服务、写入 ES，并更新任务 embedding 状态。
+12. 投标文件在 embedding 之后继续执行雷同分析。
+13. 主流程异常时任务状态更新为 `FAILED`，并记录错误信息；项目名称 ES 索引和 embedding 异常不会影响主任务成功。
 
 ## 数据库
 
@@ -241,12 +356,14 @@ src/main/resources/db/schema.sql
 
 应用不会自动建表，部署前需要在神通/Oscar 数据库中手动执行该 SQL。
 
-三张表：
+四张数据库表：
 
-- `ztb_file_processing_task`：异步任务状态、错误信息、LLM 原始 JSON、结果摘要。
+- `ztb_file_processing_task`：异步任务状态、错误信息、LLM 原始 JSON、结果摘要和 embedding 状态。
 - `ztb_project_info`：招标文件抽取后的项目信息。
 - `ztb_project_bidder_company`：投标文件抽取后的投标企业信息。
 - `ztb_bid_similarity_analysis`：投标文件两两雷同分析结果。
+
+RAG 向量不写神通全文表，写入 Elasticsearch 索引 `ztb_file_embedding_v2`。招标项目名称搜索写入 Elasticsearch 索引 `ztb_tender_project_name`。
 
 ## 配置
 
@@ -367,6 +484,94 @@ ztb:
     llm-review-min-score: 70
 ```
 
+### Embedding 和 Elasticsearch 配置
+
+embedding 默认关闭：
+
+```yaml
+ztb:
+  embedding:
+    enabled: false
+    model: bge-base-zh-v1.5
+    endpoint: /v1/embeddings
+    timeout: 30s
+    batch-size: 16
+    vector-dims: 768
+    target-chunk-chars: 500
+    max-chunk-chars: 800
+    min-chunk-chars: 80
+    overlap-chars: 120
+    filter-boilerplate: true
+    keep-boilerplate: true
+  elasticsearch:
+    index-name: ztb_file_embedding_v2
+    project-name-index-name: ztb_tender_project_name
+    project-name-analyzer: ik_max_word
+    project-name-search-analyzer: ik_smart
+    chunk-analyzer: ik_max_word
+    chunk-search-analyzer: ik_smart
+    auto-create-index: true
+    timeout: 30s
+  rag-search:
+    mode: HYBRID
+    default-top-k: 3
+    max-top-k: 20
+    include-boilerplate: false
+    filter-model: true
+    min-score: 0
+    vector-candidate-size: 50
+    keyword-candidate-size: 50
+    rrf-rank-constant: 60
+    vector-weight: 0.6
+    keyword-weight: 0.4
+  rerank:
+    enabled: true
+    model: bge-rerank
+    endpoint: /v1/rerank
+    timeout: 30s
+    candidate-size: 50
+    fallback-to-hybrid: true
+```
+
+部署时开启：
+
+```bash
+export ZTB_EMBEDDING_ENABLED=true
+export ZTB_EMBEDDING_BASE_URL='http://embedding-service'
+export ZTB_EMBEDDING_API_KEY='你的API Key'
+export ZTB_EMBEDDING_MODEL='bge-base-zh-v1.5'
+export ZTB_ES_BASE_URL='http://elasticsearch:9200'
+export ZTB_ES_INDEX_NAME='ztb_file_embedding_v2'
+export ZTB_ES_PROJECT_NAME_INDEX_NAME='ztb_tender_project_name'
+export ZTB_ES_PROJECT_NAME_ANALYZER='ik_max_word'
+export ZTB_ES_PROJECT_NAME_SEARCH_ANALYZER='ik_smart'
+export ZTB_ES_CHUNK_ANALYZER='ik_max_word'
+export ZTB_ES_CHUNK_SEARCH_ANALYZER='ik_smart'
+export ZTB_RERANK_BASE_URL='http://rerank-service'
+export ZTB_RERANK_MODEL='bge-rerank'
+```
+
+embedding/ES 使用独立的 `RestTemplate`，不会继承文件下载接口的 `trust-all-ssl` 配置。embedding 和 ES 也各自使用独立 timeout。
+
+### MCP 配置
+
+项目使用 Spring AI MCP Server WebMVC 暴露工具，默认开启注解扫描：
+
+```yaml
+spring:
+  ai:
+    mcp:
+      server:
+        name: ztb-sync-rag
+        version: 1.0.0
+        protocol: STATELESS
+        type: SYNC
+        annotation-scanner:
+          enabled: true
+```
+
+MCP 客户端可调用工具 `search_ztb_project_documents`，入参和 `/api/rag/search` 保持一致，支持可选 `file_type` 过滤。
+
 ## 日志
 
 关键链路已经输出日志，包括：
@@ -377,6 +582,8 @@ ztb:
 - DOCX 解析出的文本长度
 - LLM 调用模型、输入长度和返回 JSON 长度
 - 招标/投标业务表插入或更新
+- 招标项目名称 ES 索引写入、跳过和失败原因
+- RAG chunk 生成、embedding 跳过、成功写入数量、失败原因
 - 雷同分析成功、失败、得分和风险等级
 - 任务成功、失败或 supersede
 
@@ -398,9 +605,14 @@ ztb:
 - 时间范围计算
 - 正则和 LLM 结果合并
 - 测试用同步抽取接口
+- 测试用直接 embedding 入 ES 接口
 - 3-gram Jaccard 雷同分析
 - 招标来源片段降权
 - 雷同分析查询接口
+- RAG block 提取和 chunk 切分
+- embedding 响应数量、向量维度校验
+- ES 自动建索引、删除旧 chunk、bulk 写入
+- embedding 关闭、成功、失败状态更新
 - 上传接口校验
 - 异步 worker 关键分支
 
@@ -411,6 +623,8 @@ src/main/java/org/example/ztbsync/api          REST 接口和响应模型
 src/main/java/org/example/ztbsync/service      上传受理、文件下载、异步处理、落库服务
 src/main/java/org/example/ztbsync/extraction   DOCX 解析、正则抽取、时间归一化、结果合并
 src/main/java/org/example/ztbsync/similarity   投标文件雷同分析、3-gram Jaccard、招标降权
+src/main/java/org/example/ztbsync/rag          DOCX block 提取和 RAG chunk 切分
+src/main/java/org/example/ztbsync/embedding    embedding 调用和 Elasticsearch 向量写入
 src/main/java/org/example/ztbsync/llm          OpenAI-compatible LLM 调用和响应映射
 src/main/java/org/example/ztbsync/mapper       MyBatis Mapper
 src/main/java/org/example/ztbsync/domain       任务、业务表实体和枚举

@@ -21,14 +21,14 @@ public class ProjectInfo {
     private String agencyName;
     /** 项目名称。 */
     private String projectName;
-    /** 投标文件递交开始时间。 */
-    private LocalDateTime bidSubmitStartTime;
-    /** 投标文件递交结束或截止时间。 */
-    private LocalDateTime bidSubmitEndTime;
-    /** 项目相关所有时间点中的最早时间。 */
-    private LocalDateTime rangeStartTime;
-    /** 项目相关所有时间点中的最晚时间。 */
-    private LocalDateTime rangeEndTime;
+    /** 投标文件递交开始时间，格式 yyyy-MM-dd HH:mm:ss。 */
+    private String bidSubmitStartTime;
+    /** 投标文件递交结束或截止时间，格式 yyyy-MM-dd HH:mm:ss。 */
+    private String bidSubmitEndTime;
+    /** 项目相关所有时间点中的最早时间，格式 yyyy-MM-dd HH:mm:ss。 */
+    private String rangeStartTime;
+    /** 项目相关所有时间点中的最晚时间，格式 yyyy-MM-dd HH:mm:ss。 */
+    private String rangeEndTime;
     /** 项目相关时间点明细 JSON。 */
     private String allTimePointsJson;
     /** 产生本次业务数据的任务 ID。 */
@@ -94,35 +94,35 @@ public class ProjectInfo {
         this.projectName = projectName;
     }
 
-    public LocalDateTime getBidSubmitStartTime() {
+    public String getBidSubmitStartTime() {
         return bidSubmitStartTime;
     }
 
-    public void setBidSubmitStartTime(LocalDateTime bidSubmitStartTime) {
+    public void setBidSubmitStartTime(String bidSubmitStartTime) {
         this.bidSubmitStartTime = bidSubmitStartTime;
     }
 
-    public LocalDateTime getBidSubmitEndTime() {
+    public String getBidSubmitEndTime() {
         return bidSubmitEndTime;
     }
 
-    public void setBidSubmitEndTime(LocalDateTime bidSubmitEndTime) {
+    public void setBidSubmitEndTime(String bidSubmitEndTime) {
         this.bidSubmitEndTime = bidSubmitEndTime;
     }
 
-    public LocalDateTime getRangeStartTime() {
+    public String getRangeStartTime() {
         return rangeStartTime;
     }
 
-    public void setRangeStartTime(LocalDateTime rangeStartTime) {
+    public void setRangeStartTime(String rangeStartTime) {
         this.rangeStartTime = rangeStartTime;
     }
 
-    public LocalDateTime getRangeEndTime() {
+    public String getRangeEndTime() {
         return rangeEndTime;
     }
 
-    public void setRangeEndTime(LocalDateTime rangeEndTime) {
+    public void setRangeEndTime(String rangeEndTime) {
         this.rangeEndTime = rangeEndTime;
     }
 

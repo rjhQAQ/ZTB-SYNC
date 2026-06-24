@@ -1,6 +1,5 @@
 package org.example.ztbsync.extraction;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.stereotype.Component;
@@ -47,13 +46,15 @@ public class TenderRegexExtractor {
         return null;
     }
 
-    private LocalDateTime findTimeAfterKeywords(String text, List<String> keys) {
+    private String findTimeAfterKeywords(String text, List<String> keys) {
         for (String line : ExtractionTextUtils.lines(text)) {
             for (String key : keys) {
                 int index = line.indexOf(key);
                 if (index >= 0) {
                     String tail = line.substring(index + key.length());
-                    return timeNormalizer.parse(tail).orElse(null);
+                    return timeNormalizer.parse(tail)
+                            .map(timeNormalizer::format)
+                            .orElse(null);
                 }
             }
         }
@@ -61,7 +62,11 @@ public class TenderRegexExtractor {
     }
 
     private void fillTimeRange(TenderExtraction extraction) {
-        timeNormalizer.earliest(extraction.getTimePoints()).ifPresent(extraction::setRangeStartTime);
-        timeNormalizer.latest(extraction.getTimePoints()).ifPresent(extraction::setRangeEndTime);
+        timeNormalizer.earliest(extraction.getTimePoints())
+                .map(timeNormalizer::format)
+                .ifPresent(extraction::setRangeStartTime);
+        timeNormalizer.latest(extraction.getTimePoints())
+                .map(timeNormalizer::format)
+                .ifPresent(extraction::setRangeEndTime);
     }
 }

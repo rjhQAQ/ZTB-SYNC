@@ -141,8 +141,8 @@ public class LlmExtractionClient {
         extraction.setTenderCompanyName(text(json, "tenderCompanyName"));
         extraction.setAgencyName(text(json, "agencyName"));
         extraction.setProjectName(text(json, "projectName"));
-        extraction.setBidSubmitStartTime(parseTime(text(json, "bidSubmitStartTime")));
-        extraction.setBidSubmitEndTime(parseTime(text(json, "bidSubmitEndTime")));
+        extraction.setBidSubmitStartTime(parseFormattedTime(text(json, "bidSubmitStartTime")));
+        extraction.setBidSubmitEndTime(parseFormattedTime(text(json, "bidSubmitEndTime")));
         List<TimePoint> points = new ArrayList<>();
         JsonNode timePoints = json.path("timePoints");
         if (timePoints.isArray()) {
@@ -197,6 +197,11 @@ public class LlmExtractionClient {
 
     private LocalDateTime parseTime(String value) {
         return timeNormalizer.parse(value).orElse(null);
+    }
+
+    private String parseFormattedTime(String value) {
+        LocalDateTime parsed = parseTime(value);
+        return parsed == null ? null : timeNormalizer.format(parsed);
     }
 
     private String text(JsonNode node, String field) {

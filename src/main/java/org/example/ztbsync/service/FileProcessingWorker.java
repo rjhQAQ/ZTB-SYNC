@@ -6,6 +6,8 @@ import java.util.List;
 import org.example.ztbsync.domain.FileProcessingTask;
 import org.example.ztbsync.domain.FileType;
 import org.example.ztbsync.domain.ProcessingStatus;
+import org.example.ztbsync.embedding.FileEmbeddingService;
+import org.example.ztbsync.embedding.TenderProjectNameIndexService;
 import org.example.ztbsync.extraction.BidExtraction;
 import org.example.ztbsync.extraction.BidRegexExtractor;
 import org.example.ztbsync.extraction.DocxTextExtractor;
@@ -32,6 +34,8 @@ public class FileProcessingWorker {
     private final LlmExtractionClient llmExtractionClient;
     private final ExtractionMerger extractionMerger;
     private final ExtractionPersistenceService persistenceService;
+    private final FileEmbeddingService fileEmbeddingService;
+    private final TenderProjectNameIndexService tenderProjectNameIndexService;
     private final BidSimilarityAnalysisService bidSimilarityAnalysisService;
 
     public FileProcessingWorker(
@@ -43,6 +47,8 @@ public class FileProcessingWorker {
             LlmExtractionClient llmExtractionClient,
             ExtractionMerger extractionMerger,
             ExtractionPersistenceService persistenceService,
+            FileEmbeddingService fileEmbeddingService,
+            TenderProjectNameIndexService tenderProjectNameIndexService,
             BidSimilarityAnalysisService bidSimilarityAnalysisService) {
         this.taskMapper = taskMapper;
         this.fileDownloadClient = fileDownloadClient;
@@ -52,6 +58,8 @@ public class FileProcessingWorker {
         this.llmExtractionClient = llmExtractionClient;
         this.extractionMerger = extractionMerger;
         this.persistenceService = persistenceService;
+        this.fileEmbeddingService = fileEmbeddingService;
+        this.tenderProjectNameIndexService = tenderProjectNameIndexService;
         this.bidSimilarityAnalysisService = bidSimilarityAnalysisService;
     }
 
@@ -100,10 +108,13 @@ public class FileProcessingWorker {
                 TenderExtraction regex = tenderRegexExtractor.extract(text);
                 TenderExtraction merged = extractionMerger.mergeTender(regex, llmResult.tenderExtraction());
                 persistenceService.persistTenderAndComplete(task, merged);
+                indexTenderProjectName(task, merged);
+                indexFileEmbedding(task, bytes, text);
             } else {
                 BidExtraction regex = bidRegexExtractor.extract(text);
                 BidExtraction merged = extractionMerger.mergeBid(regex, llmResult.bidExtraction());
                 persistenceService.persistBidAndComplete(task, merged);
+                indexFileEmbedding(task, bytes, text);
                 analyzeBidSimilarity(task, merged, text);
             }
             log.info("Finished file processing task successfully: taskId={}, projectId={}, fileId={}, type={}",
@@ -143,6 +154,24 @@ public class FileProcessingWorker {
                     currentText);
         } catch (Exception exception) {
             log.error("Bid similarity analysis failed but bid extraction remains successful: taskId={}, projectId={}, fileId={}, message={}",
+                    task.getTaskId(), task.getProjectId(), task.getFileId(), rootMessage(exception), exception);
+        }
+    }
+
+    private void indexFileEmbedding(FileProcessingTask task, byte[] bytes, String text) {
+        if (!isLatestTask(task)) {
+            log.info("Skip embedding for stale file processing task after persistence: taskId={}, projectId={}, fileId={}, type={}",
+                    task.getTaskId(), task.getProjectId(), task.getFileId(), task.getFileType());
+            return;
+        }
+        fileEmbeddingService.indexFile(task, bytes, text);
+    }
+
+    private void indexTenderProjectName(FileProcessingTask task, TenderExtraction extraction) {
+        try {
+            tenderProjectNameIndexService.index(task, extraction);
+        } catch (Exception exception) {
+            log.error("Tender project name indexing failed but tender extraction remains successful: taskId={}, projectId={}, fileId={}, message={}",
                     task.getTaskId(), task.getProjectId(), task.getFileId(), rootMessage(exception), exception);
         }
     }

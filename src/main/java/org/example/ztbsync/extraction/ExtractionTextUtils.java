@@ -35,6 +35,24 @@ final class ExtractionTextUtils {
         return cleaned.isBlank() ? null : cleaned;
     }
 
+    static String cleanCompanyName(String value) {
+        String cleaned = cleanValue(value);
+        if (cleaned == null) {
+            return null;
+        }
+        for (int i = 0; i < 4; i++) {
+            String before = cleaned;
+            cleaned = cleaned.replaceAll("[（(]\\s*(?:单位)?(?:公章|盖章|签章|印章)\\s*[)）]", " ");
+            cleaned = cleaned.replaceAll("^[\\s_＿?？:：,，;；.。·\\-—]+", "");
+            cleaned = cleaned.replaceAll("[\\s_＿?？:：,，;；.。·\\-—]+$", "");
+            cleaned = cleaned.trim();
+            if (cleaned.equals(before)) {
+                break;
+            }
+        }
+        return cleaned.isBlank() ? null : cleaned;
+    }
+
     static boolean hasText(String value) {
         return value != null && !value.isBlank();
     }

@@ -21,6 +21,7 @@ public interface FileProcessingTaskMapper {
     String COLUMNS = """
             task_id, project_id, file_id, file_name, file_type, status,
             error_message, llm_raw_json, result_summary_json,
+            embedding_status, embedding_error_message, embedding_indexed_segments, embedding_updated_at,
             created_at, updated_at, started_at, finished_at
             """;
 
@@ -28,10 +29,12 @@ public interface FileProcessingTaskMapper {
             INSERT INTO ztb_file_processing_task (
                 task_id, project_id, file_id, file_name, file_type, status,
                 error_message, llm_raw_json, result_summary_json,
+                embedding_status, embedding_error_message, embedding_indexed_segments, embedding_updated_at,
                 created_at, updated_at, started_at, finished_at
             ) VALUES (
                 #{taskId}, #{projectId}, #{fileId}, #{fileName}, #{fileType}, #{status},
                 #{errorMessage}, #{llmRawJson}, #{resultSummaryJson},
+                #{embeddingStatus}, #{embeddingErrorMessage}, #{embeddingIndexedSegments}, #{embeddingUpdatedAt},
                 #{createdAt}, #{updatedAt}, #{startedAt}, #{finishedAt}
             )
             """)
@@ -45,6 +48,7 @@ public interface FileProcessingTaskMapper {
     @Select("""
             SELECT task_id, project_id, file_id, file_name, file_type, status,
                    error_message, llm_raw_json, result_summary_json,
+                   embedding_status, embedding_error_message, embedding_indexed_segments, embedding_updated_at,
                    created_at, updated_at, started_at, finished_at
             FROM ztb_file_processing_task
             WHERE project_id = #{projectId}
@@ -136,4 +140,53 @@ public interface FileProcessingTaskMapper {
             WHERE task_id = #{taskId}
             """)
     int markSuperseded(@Param("taskId") String taskId, @Param("finishedAt") LocalDateTime finishedAt);
+
+    @Update("""
+            UPDATE ztb_file_processing_task
+            SET embedding_status = 'SKIPPED',
+                embedding_error_message = NULL,
+                embedding_indexed_segments = 0,
+                embedding_updated_at = #{updatedAt},
+                updated_at = #{updatedAt}
+            WHERE task_id = #{taskId}
+            """)
+    int markEmbeddingSkipped(@Param("taskId") String taskId, @Param("updatedAt") LocalDateTime updatedAt);
+
+    @Update("""
+            UPDATE ztb_file_processing_task
+            SET embedding_status = 'PROCESSING',
+                embedding_error_message = NULL,
+                embedding_indexed_segments = 0,
+                embedding_updated_at = #{updatedAt},
+                updated_at = #{updatedAt}
+            WHERE task_id = #{taskId}
+            """)
+    int markEmbeddingProcessing(@Param("taskId") String taskId, @Param("updatedAt") LocalDateTime updatedAt);
+
+    @Update("""
+            UPDATE ztb_file_processing_task
+            SET embedding_status = 'SUCCESS',
+                embedding_error_message = NULL,
+                embedding_indexed_segments = #{indexedSegments},
+                embedding_updated_at = #{updatedAt},
+                updated_at = #{updatedAt}
+            WHERE task_id = #{taskId}
+            """)
+    int markEmbeddingSuccess(
+            @Param("taskId") String taskId,
+            @Param("indexedSegments") int indexedSegments,
+            @Param("updatedAt") LocalDateTime updatedAt);
+
+    @Update("""
+            UPDATE ztb_file_processing_task
+            SET embedding_status = 'FAILED',
+                embedding_error_message = #{errorMessage},
+                embedding_updated_at = #{updatedAt},
+                updated_at = #{updatedAt}
+            WHERE task_id = #{taskId}
+            """)
+    int markEmbeddingFailed(
+            @Param("taskId") String taskId,
+            @Param("errorMessage") String errorMessage,
+            @Param("updatedAt") LocalDateTime updatedAt);
 }

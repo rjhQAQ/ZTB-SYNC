@@ -6,9 +6,13 @@ CREATE TABLE ztb_file_processing_task (
     file_name VARCHAR(512) NOT NULL,
     file_type VARCHAR(32) NOT NULL,
     status VARCHAR(32) NOT NULL,
-    error_message CLOB,
-    llm_raw_json CLOB,
-    result_summary_json CLOB,
+    error_message TEXT,
+    llm_raw_json TEXT,
+    result_summary_json TEXT,
+    embedding_status VARCHAR(32),
+    embedding_error_message TEXT,
+    embedding_indexed_segments INTEGER,
+    embedding_updated_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,
     started_at TIMESTAMP,
@@ -25,6 +29,10 @@ COMMENT ON COLUMN ztb_file_processing_task.status IS '处理状态：PENDING、P
 COMMENT ON COLUMN ztb_file_processing_task.error_message IS '失败错误信息';
 COMMENT ON COLUMN ztb_file_processing_task.llm_raw_json IS 'LLM 原始抽取 JSON';
 COMMENT ON COLUMN ztb_file_processing_task.result_summary_json IS '抽取结果摘要 JSON';
+COMMENT ON COLUMN ztb_file_processing_task.embedding_status IS 'Embedding 状态：SKIPPED、PROCESSING、SUCCESS、FAILED';
+COMMENT ON COLUMN ztb_file_processing_task.embedding_error_message IS 'Embedding 失败错误信息';
+COMMENT ON COLUMN ztb_file_processing_task.embedding_indexed_segments IS 'Embedding 写入 ES 的 chunk 数量';
+COMMENT ON COLUMN ztb_file_processing_task.embedding_updated_at IS 'Embedding 状态更新时间';
 COMMENT ON COLUMN ztb_file_processing_task.created_at IS '创建时间';
 COMMENT ON COLUMN ztb_file_processing_task.updated_at IS '更新时间';
 COMMENT ON COLUMN ztb_file_processing_task.started_at IS '开始处理时间';
@@ -43,11 +51,11 @@ CREATE TABLE ztb_project_info (
     tender_company_name VARCHAR(512),
     agency_name VARCHAR(512),
     project_name VARCHAR(512),
-    bid_submit_start_time TIMESTAMP,
-    bid_submit_end_time TIMESTAMP,
-    range_start_time TIMESTAMP,
-    range_end_time TIMESTAMP,
-    all_time_points_json CLOB,
+    bid_submit_start_time VARCHAR(19),
+    bid_submit_end_time VARCHAR(19),
+    range_start_time VARCHAR(19),
+    range_end_time VARCHAR(19),
+    all_time_points_json TEXT,
     task_id VARCHAR(64) NOT NULL,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,
@@ -62,10 +70,10 @@ COMMENT ON COLUMN ztb_project_info.file_name IS '招标文件名称';
 COMMENT ON COLUMN ztb_project_info.tender_company_name IS '招标企业名称';
 COMMENT ON COLUMN ztb_project_info.agency_name IS '代理机构名称';
 COMMENT ON COLUMN ztb_project_info.project_name IS '项目名称';
-COMMENT ON COLUMN ztb_project_info.bid_submit_start_time IS '投标文件递交开始时间';
-COMMENT ON COLUMN ztb_project_info.bid_submit_end_time IS '投标文件递交结束时间';
-COMMENT ON COLUMN ztb_project_info.range_start_time IS '项目整体时间范围开始时间';
-COMMENT ON COLUMN ztb_project_info.range_end_time IS '项目整体时间范围结束时间';
+COMMENT ON COLUMN ztb_project_info.bid_submit_start_time IS '投标文件递交开始时间，格式 yyyy-MM-dd HH:mm:ss';
+COMMENT ON COLUMN ztb_project_info.bid_submit_end_time IS '投标文件递交结束时间，格式 yyyy-MM-dd HH:mm:ss';
+COMMENT ON COLUMN ztb_project_info.range_start_time IS '项目整体时间范围开始时间，格式 yyyy-MM-dd HH:mm:ss';
+COMMENT ON COLUMN ztb_project_info.range_end_time IS '项目整体时间范围结束时间，格式 yyyy-MM-dd HH:mm:ss';
 COMMENT ON COLUMN ztb_project_info.all_time_points_json IS '项目相关所有时间点 JSON';
 COMMENT ON COLUMN ztb_project_info.task_id IS '来源处理任务ID';
 COMMENT ON COLUMN ztb_project_info.created_at IS '创建时间';
@@ -81,7 +89,7 @@ CREATE TABLE ztb_project_bidder_company (
     bidder_contact_phone VARCHAR(128),
     registered_address VARCHAR(1024),
     mailing_address VARCHAR(1024),
-    project_management_personnel_json CLOB,
+    project_management_personnel_json TEXT,
     task_id VARCHAR(64) NOT NULL,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,
@@ -117,9 +125,9 @@ CREATE TABLE ztb_bid_similarity_analysis (
     score DECIMAL(6, 2),
     risk_level VARCHAR(32),
     status VARCHAR(32) NOT NULL,
-    hit_fragments_json CLOB,
-    llm_review_json CLOB,
-    error_message CLOB,
+    hit_fragments_json TEXT,
+    llm_review_json TEXT,
+    error_message TEXT,
     task_id VARCHAR(64) NOT NULL,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,

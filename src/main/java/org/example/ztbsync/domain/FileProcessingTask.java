@@ -27,6 +27,14 @@ public class FileProcessingTask {
     private String llmRawJson;
     /** 成功后写入的最终抽取结果摘要 JSON。 */
     private String resultSummaryJson;
+    /** Embedding 入 ES 的独立状态。 */
+    private String embeddingStatus;
+    /** Embedding 失败时记录的错误摘要。 */
+    private String embeddingErrorMessage;
+    /** 已写入 ES 的 chunk 数。 */
+    private Integer embeddingIndexedSegments;
+    /** Embedding 状态更新时间。 */
+    private LocalDateTime embeddingUpdatedAt;
     /** 任务创建时间。 */
     private LocalDateTime createdAt;
     /** 任务最后更新时间。 */
@@ -106,6 +114,38 @@ public class FileProcessingTask {
 
     public void setResultSummaryJson(String resultSummaryJson) {
         this.resultSummaryJson = resultSummaryJson;
+    }
+
+    public String getEmbeddingStatus() {
+        return embeddingStatus;
+    }
+
+    public void setEmbeddingStatus(String embeddingStatus) {
+        this.embeddingStatus = embeddingStatus;
+    }
+
+    public String getEmbeddingErrorMessage() {
+        return embeddingErrorMessage;
+    }
+
+    public void setEmbeddingErrorMessage(String embeddingErrorMessage) {
+        this.embeddingErrorMessage = embeddingErrorMessage;
+    }
+
+    public Integer getEmbeddingIndexedSegments() {
+        return embeddingIndexedSegments;
+    }
+
+    public void setEmbeddingIndexedSegments(Integer embeddingIndexedSegments) {
+        this.embeddingIndexedSegments = embeddingIndexedSegments;
+    }
+
+    public LocalDateTime getEmbeddingUpdatedAt() {
+        return embeddingUpdatedAt;
+    }
+
+    public void setEmbeddingUpdatedAt(LocalDateTime embeddingUpdatedAt) {
+        this.embeddingUpdatedAt = embeddingUpdatedAt;
     }
 
     public LocalDateTime getCreatedAt() {

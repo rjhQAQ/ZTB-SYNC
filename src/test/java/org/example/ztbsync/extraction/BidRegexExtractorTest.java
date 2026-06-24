@@ -29,4 +29,16 @@ class BidRegexExtractorTest {
                 .extracting(ProjectManagementPerson::role)
                 .containsExactly("项目经理", "技术负责人");
     }
+
+    @Test
+    void cleansPdfConvertedStampNoiseAroundBidCompanyName() {
+        String text = """
+                投标单位：_?（公章）浙江测试建设有限公司（公章）_?
+                投标人联系电话：13800138000
+                """;
+
+        BidExtraction result = extractor.extract(text);
+
+        assertThat(result.getBidCompanyName()).isEqualTo("浙江测试建设有限公司");
+    }
 }

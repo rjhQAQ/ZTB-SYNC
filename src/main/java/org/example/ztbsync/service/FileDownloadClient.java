@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.ztbsync.config.ZtbProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -31,7 +32,10 @@ public class FileDownloadClient {
     private final ZtbProperties properties;
     private final ObjectMapper objectMapper;
 
-    public FileDownloadClient(RestTemplate restTemplate, ZtbProperties properties, ObjectMapper objectMapper) {
+    public FileDownloadClient(
+            @Qualifier("fileDownloadRestTemplate") RestTemplate restTemplate,
+            ZtbProperties properties,
+            ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
         this.properties = properties;
         this.objectMapper = objectMapper;

@@ -2,7 +2,6 @@ package org.example.ztbsync.extraction;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -27,8 +26,8 @@ class ExtractionMergerTest {
 
         assertThat(merged.getProjectName()).isEqualTo("正则项目");
         assertThat(merged.getTenderCompanyName()).isEqualTo("LLM 招标公司");
-        assertThat(merged.getRangeStartTime()).isEqualTo(LocalDateTime.of(2026, 6, 1, 9, 0));
-        assertThat(merged.getRangeEndTime()).isEqualTo(LocalDateTime.of(2026, 6, 10, 10, 0));
+        assertThat(merged.getRangeStartTime()).isEqualTo("2026-06-01 09:00:00");
+        assertThat(merged.getRangeEndTime()).isEqualTo("2026-06-10 10:00:00");
         assertThat(merged.getTimePoints()).hasSize(2);
     }
 

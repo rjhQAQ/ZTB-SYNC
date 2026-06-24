@@ -2,8 +2,6 @@ package org.example.ztbsync.extraction;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.LocalDateTime;
-
 import org.junit.jupiter.api.Test;
 
 class TenderRegexExtractorTest {
@@ -27,10 +25,10 @@ class TenderRegexExtractorTest {
         assertThat(result.getProjectName()).isEqualTo("智慧园区建设项目");
         assertThat(result.getTenderCompanyName()).isEqualTo("上海示例招标有限公司");
         assertThat(result.getAgencyName()).isEqualTo("北京示例代理有限公司");
-        assertThat(result.getBidSubmitStartTime()).isEqualTo(LocalDateTime.of(2026, 6, 12, 9, 0));
-        assertThat(result.getBidSubmitEndTime()).isEqualTo(LocalDateTime.of(2026, 6, 15, 17, 30));
-        assertThat(result.getRangeStartTime()).isEqualTo(LocalDateTime.of(2026, 6, 12, 9, 0));
-        assertThat(result.getRangeEndTime()).isEqualTo(LocalDateTime.of(2026, 6, 16, 10, 0));
+        assertThat(result.getBidSubmitStartTime()).isEqualTo("2026-06-12 09:00:00");
+        assertThat(result.getBidSubmitEndTime()).isEqualTo("2026-06-15 17:30:00");
+        assertThat(result.getRangeStartTime()).isEqualTo("2026-06-12 09:00:00");
+        assertThat(result.getRangeEndTime()).isEqualTo("2026-06-16 10:00:00");
         assertThat(result.getTimePoints()).hasSize(3);
     }
 }

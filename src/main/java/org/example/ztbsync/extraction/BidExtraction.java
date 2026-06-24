@@ -16,7 +16,7 @@ public class BidExtraction {
     }
 
     public void setBidCompanyName(String bidCompanyName) {
-        this.bidCompanyName = bidCompanyName;
+        this.bidCompanyName = ExtractionTextUtils.cleanCompanyName(bidCompanyName);
     }
 
     public String getBidderContactPhone() {

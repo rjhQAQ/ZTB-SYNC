@@ -1,6 +1,5 @@
 package org.example.ztbsync.extraction;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,10 +8,10 @@ public class TenderExtraction {
     private String tenderCompanyName;
     private String agencyName;
     private String projectName;
-    private LocalDateTime bidSubmitStartTime;
-    private LocalDateTime bidSubmitEndTime;
-    private LocalDateTime rangeStartTime;
-    private LocalDateTime rangeEndTime;
+    private String bidSubmitStartTime;
+    private String bidSubmitEndTime;
+    private String rangeStartTime;
+    private String rangeEndTime;
     private List<TimePoint> timePoints = new ArrayList<>();
 
     public String getTenderCompanyName() {
@@ -39,35 +38,35 @@ public class TenderExtraction {
         this.projectName = projectName;
     }
 
-    public LocalDateTime getBidSubmitStartTime() {
+    public String getBidSubmitStartTime() {
         return bidSubmitStartTime;
     }
 
-    public void setBidSubmitStartTime(LocalDateTime bidSubmitStartTime) {
+    public void setBidSubmitStartTime(String bidSubmitStartTime) {
         this.bidSubmitStartTime = bidSubmitStartTime;
     }
 
-    public LocalDateTime getBidSubmitEndTime() {
+    public String getBidSubmitEndTime() {
         return bidSubmitEndTime;
     }
 
-    public void setBidSubmitEndTime(LocalDateTime bidSubmitEndTime) {
+    public void setBidSubmitEndTime(String bidSubmitEndTime) {
         this.bidSubmitEndTime = bidSubmitEndTime;
     }
 
-    public LocalDateTime getRangeStartTime() {
+    public String getRangeStartTime() {
         return rangeStartTime;
     }
 
-    public void setRangeStartTime(LocalDateTime rangeStartTime) {
+    public void setRangeStartTime(String rangeStartTime) {
         this.rangeStartTime = rangeStartTime;
     }
 
-    public LocalDateTime getRangeEndTime() {
+    public String getRangeEndTime() {
         return rangeEndTime;
     }
 
-    public void setRangeEndTime(LocalDateTime rangeEndTime) {
+    public void setRangeEndTime(String rangeEndTime) {
         this.rangeEndTime = rangeEndTime;
     }
 
